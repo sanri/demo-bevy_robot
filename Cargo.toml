@@ -14,5 +14,5 @@ version = "0.11"
 default-features = false
 features = [
     "bevy_asset", "bevy_core_pipeline", "bevy_gizmos", "bevy_gltf", "bevy_pbr", "bevy_render", "bevy_scene",
-    "bevy_sprite", "bevy_text", "bevy_winit", "multi-threaded", "ktx2", "tonemapping_luts", "zstd"
+    "bevy_sprite", "bevy_text", "bevy_winit", "multi-threaded", "ktx2", "tonemapping_luts", "zstd", "default_font"
 ]

@@ -12,6 +12,9 @@ use crate::{
     robot_ur5::{RobotPluginUr5, RobotUr5, JOINTS_POS},
 };
 
+const ROBOT_KEY_0: u64 = 0;
+const ROBOT_KEY_1: u64 = 1;
+
 fn main() {
     App::new()
         .init_resource::<JointsPos>()
@@ -24,7 +27,7 @@ fn main() {
             GripperPlugin,
             DrawTrailPlugin,
         ))
-        .add_systems(Startup, (setup_camera_light, setup_robot))
+        .add_systems(Startup, (setup_camera_light, setup_robot, setup_label))
         .add_systems(
             Update,
             (
@@ -33,6 +36,7 @@ fn main() {
                 update_finger_pos,
                 draw_floor_grids,
                 draw_gripper_trails,
+                update_label_pos,
             ),
         )
         .run();
@@ -175,7 +179,7 @@ fn ui(
 fn setup_camera_light(mut commands: Commands) {
     commands.spawn((
         Camera3dBundle {
-            transform: Transform::from_translation(Vec3::new(0.0, 1.5, 5.0)),
+            transform: Transform::from_translation(Vec3::new(0.0, 1.5, 3.0)),
             ..default()
         },
         PanOrbitCamera {
@@ -212,16 +216,78 @@ fn setup_robot(mut commands: Commands) {
     commands.add(|world: &mut World| {
         let mut tf = Transform::from_xyz(-0.5, 0.0, 0.0);
         tf.rotate_x(-std::f32::consts::FRAC_PI_2);
-        let (_, wrist) = RobotPluginUr5::add_robot(world, 0, Some(tf), None);
-        let (gripper, _, _) = GripperPlugin::add_gripper(world, 0, None, Some([0.0, 0.0]));
+        let (_, wrist) = RobotPluginUr5::add_robot(world, ROBOT_KEY_0, Some(tf), None);
+        let (gripper, _, _) =
+            GripperPlugin::add_gripper(world, ROBOT_KEY_0, None, Some([0.0, 0.0]));
         world.entity_mut(wrist).push_children(&[gripper]);
     });
 
     commands.add(|world: &mut World| {
         let mut tf = Transform::from_xyz(0.5, 0.0, 0.0);
         tf.rotate_x(-std::f32::consts::FRAC_PI_2);
-        let (_, wrist) = RobotPluginUr5::add_robot(world, 1, Some(tf), None);
-        let (gripper, _, _) = GripperPlugin::add_gripper(world, 1, None, Some([0.0, 0.0]));
+        let (_, wrist) = RobotPluginUr5::add_robot(world, ROBOT_KEY_1, Some(tf), None);
+        let (gripper, _, _) =
+            GripperPlugin::add_gripper(world, ROBOT_KEY_1, None, Some([0.0, 0.0]));
         world.entity_mut(wrist).push_children(&[gripper]);
     });
+}
+
+#[derive(Component)]
+struct Label(u64);
+
+fn setup_label(mut commands: Commands) {
+    commands.spawn((
+        TextBundle {
+            text: Text::from_section(
+                "Robot0",
+                TextStyle {
+                    font_size: 24.0,
+                    ..default()
+                },
+            ),
+            style: Style {
+                position_type: PositionType::Absolute,
+                ..default()
+            },
+            ..default()
+        },
+        Label(ROBOT_KEY_0),
+    ));
+
+    commands.spawn((
+        TextBundle {
+            text: Text::from_section(
+                "Robot1",
+                TextStyle {
+                    font_size: 24.0,
+                    ..default()
+                },
+            ),
+            style: Style {
+                position_type: PositionType::Absolute,
+                ..default()
+            },
+            ..default()
+        },
+        Label(ROBOT_KEY_1),
+    ));
+}
+
+fn update_label_pos(
+    q_robot: Query<(&RobotUr5, &GlobalTransform)>,
+    q_camera: Query<(&Camera, &GlobalTransform)>,
+    mut q_label: Query<(&Label, &mut Style)>,
+) {
+    if let Ok((camera, camera_gt)) = q_camera.get_single() {
+        for (robot, gt) in q_robot.iter() {
+            for (label, mut style) in q_label.iter_mut() {
+                if robot.id == label.0 {
+                    if let Some(pos) = camera.world_to_viewport(camera_gt, gt.translation()) {
+                        style.left = Val::Px(pos.x - 40.0);
+                        style.top = Val::Px(pos.y + 10.0);
+                    }
+                }
+            }
+        }
+    }
 }
