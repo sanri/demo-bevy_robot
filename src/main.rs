@@ -1,3 +1,4 @@
+mod draw_trail;
 mod gripper_ctm2f110;
 mod robot_ur5;
 
@@ -6,6 +7,7 @@ use bevy_egui::{egui, EguiContexts, EguiPlugin};
 use bevy_panorbit_camera::{PanOrbitCamera, PanOrbitCameraPlugin};
 
 use crate::{
+    draw_trail::{DrawTrailPlugin, Trails},
     gripper_ctm2f110::{Finger, GripperCtm2f110, GripperFingertip, GripperPlugin},
     robot_ur5::{RobotPluginUr5, RobotUr5, JOINTS_POS},
 };
@@ -20,9 +22,19 @@ fn main() {
             EguiPlugin,
             RobotPluginUr5,
             GripperPlugin,
+            DrawTrailPlugin,
         ))
         .add_systems(Startup, (setup_camera_light, setup_robot))
-        .add_systems(Update, (ui, update_joints_pos, update_finger_pos))
+        .add_systems(
+            Update,
+            (
+                ui,
+                update_joints_pos,
+                update_finger_pos,
+                draw_floor_grids,
+                draw_gripper_trails,
+            ),
+        )
         .run();
 }
 
@@ -54,6 +66,41 @@ fn update_finger_pos(mut query: Query<&mut GripperCtm2f110>, fingers: Res<Finger
             gripper.pos1 = fingers.0[id][0] / 100.0;
             gripper.pos2 = fingers.0[id][1] / 100.0;
         }
+    }
+}
+
+fn draw_floor_grids(mut gizmos: Gizmos) {
+    for i in 0..11 {
+        let z = -0.5 + (i as f32) * 0.1;
+        gizmos.line(
+            Vec3::new(-1.0, 0.0, z),
+            Vec3::new(1.0, 0.0, z),
+            Color::DARK_GRAY,
+        );
+    }
+    for i in 0..21 {
+        let x = -1.0 + (i as f32) * 0.1;
+        gizmos.line(
+            Vec3::new(x, 0.0, -0.5),
+            Vec3::new(x, 0.0, 0.5),
+            Color::DARK_GRAY,
+        );
+    }
+}
+
+fn draw_gripper_trails(
+    time: Res<Time>,
+    mut trails: ResMut<Trails>,
+    query_gripper_finger: Query<(&GripperFingertip, &GlobalTransform), Changed<GlobalTransform>>,
+) {
+    let time = time.elapsed_seconds();
+    for (fingertip, global_transform) in query_gripper_finger.iter() {
+        if fingertip.finger == Finger::Two {
+            continue;
+        }
+        let id = fingertip.id;
+        let point = global_transform.translation();
+        trails.add_point(id, time, point, 2.0, Color::GREEN);
     }
 }
 
