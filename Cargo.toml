@@ -1,0 +1,18 @@
+[package]
+name = "demo-bevy_robot"
+version = "0.1.0"
+edition = "2021"
+
+
+[dependencies]
+nalgebra = "0.32"
+bevy_egui = "0.21"
+bevy_panorbit_camera = { version = "0.6", features = [ "bevy_egui" ] }
+
+[dependencies.bevy]
+version = "0.11"
+default-features = false
+features = [
+    "bevy_asset", "bevy_core_pipeline", "bevy_gizmos", "bevy_gltf", "bevy_pbr", "bevy_render", "bevy_scene",
+    "bevy_sprite", "bevy_text", "bevy_winit", "multi-threaded", "ktx2", "tonemapping_luts", "zstd"
+]
