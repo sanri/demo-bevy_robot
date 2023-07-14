@@ -11,6 +11,13 @@ Run cmd
 cargo build --release
 ```
 
+### run
+
+Run cmd
+```shell
+cargo run --release
+```
+
 ## single page web application
 
 ### build
@@ -28,3 +35,11 @@ cargo build --release
         }
     </script>
     ```
+   
+### run
+
+use [static-web-server](https://static-web-server.net/) or others web-server.
+
+ ```shell
+ static-web-server -p 8080 --root ./dist/
+ ```
