@@ -23,7 +23,7 @@ pub enum RobotComponent {
     Arm6,
 }
 
-pub const JOINTS_POS: [f64; 6] = [90.0, -60.0, 90.0, -120.0, -90.0, 0.0];
+pub const JOINTS_POS: [f64; 6] = [90.0, -120.0, 90.0, -60.0, -90.0, 0.0];
 
 #[derive(Component)]
 pub struct RobotUr5 {
@@ -316,9 +316,18 @@ const PARS: [RobotPar; 6] = [
 ];
 
 fn compute_joint_to_base(joints: [f64; 6]) -> [Matrix4<f64>; 6] {
+    // revised data, align with ur5 robot
+    let joints_revise = [
+        joints[0] + PI,
+        joints[1],
+        -joints[2],
+        joints[3],
+        joints[4] + PI,
+        joints[5],
+    ];
     let mut ts: [Matrix4<f64>; 6] = [Matrix4::zeros(); 6];
     for i in 0..6 {
-        ts[i] = t_(PARS[i].a, PARS[i].alpha, PARS[i].d, joints[i]);
+        ts[i] = t_(PARS[i].a, PARS[i].alpha, PARS[i].d, joints_revise[i]);
     }
     let mut out = [Matrix4::zeros(); 6];
     let mut buf = ts[0];
