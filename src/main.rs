@@ -4,7 +4,9 @@ mod robot_ur5;
 
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts, EguiPlugin};
+use bevy_mod_billboard::{prelude::BillboardPlugin, BillboardDepth, BillboardTextBundle};
 use bevy_panorbit_camera::{PanOrbitCamera, PanOrbitCameraPlugin};
+use bevy_screen_diagnostics::{ScreenDiagnosticsPlugin, ScreenFrameDiagnosticsPlugin};
 
 use crate::{
     draw_trail::{DrawTrailPlugin, Trails},
@@ -14,11 +16,13 @@ use crate::{
 
 const ROBOT_KEY_0: u64 = 0;
 const ROBOT_KEY_1: u64 = 1;
+const TEXT_SCALE: Vec3 = Vec3::splat(0.0015);
 
 fn main() {
     App::new()
         .init_resource::<JointsPos>()
         .init_resource::<FingerPos>()
+        .init_resource::<ShowText>()
         .add_plugins((
             DefaultPlugins,
             PanOrbitCameraPlugin,
@@ -26,6 +30,9 @@ fn main() {
             RobotPluginUr5,
             GripperPlugin,
             DrawTrailPlugin,
+            BillboardPlugin,
+            ScreenDiagnosticsPlugin::default(),
+            ScreenFrameDiagnosticsPlugin,
         ))
         .add_systems(Startup, (setup_camera_light, setup_robot, setup_label))
         .add_systems(
@@ -36,7 +43,7 @@ fn main() {
                 update_finger_pos,
                 draw_floor_grids,
                 draw_gripper_trails,
-                update_label_pos,
+                update_label_pos_visibility,
             ),
         )
         .run();
@@ -70,6 +77,15 @@ fn update_finger_pos(mut query: Query<&mut GripperCtm2f110>, fingers: Res<Finger
             gripper.pos1 = fingers.0[id][0] / 100.0;
             gripper.pos2 = fingers.0[id][1] / 100.0;
         }
+    }
+}
+
+#[derive(Resource, Clone)]
+struct ShowText([bool; 2]);
+
+impl Default for ShowText {
+    fn default() -> Self {
+        ShowText([true, true])
     }
 }
 
@@ -112,12 +128,13 @@ fn ui(
     mut contexts: EguiContexts,
     mut joints: ResMut<JointsPos>,
     mut finger_pos: ResMut<FingerPos>,
+    mut show_text: ResMut<ShowText>,
     mut show_window: Local<[bool; 2]>,
 ) {
     let ctx = contexts.ctx_mut();
 
     egui::TopBottomPanel::top("top_panel")
-        .resizable(true)
+        .resizable(false)
         .show(ctx, |ui| {
             ui.horizontal_centered(|ui| {
                 if ui.selectable_label(!show_window[0], "Robot0").clicked() {
@@ -132,46 +149,53 @@ fn ui(
 
     for i in 0..2 {
         if !show_window[i] {
-            egui::Window::new(format!("Robot{}", i)).show(ctx, |ui| {
-                if ui.button("reset").clicked() {
-                    joints.0[i] = JOINTS_POS;
-                    finger_pos.0[i] = [0.0, 0.0];
-                }
+            egui::Window::new(format!("Robot{}", i))
+                .collapsible(false)
+                .show(ctx, |ui| {
+                    ui.horizontal(|ui| {
+                        if ui.button("reset").clicked() {
+                            joints.0[i] = JOINTS_POS;
+                            finger_pos.0[i] = [0.0, 0.0];
+                        }
 
-                egui::Grid::new("robot_axis").num_columns(2).show(ui, |ui| {
-                    ui.label("Axis1");
-                    ui.add(egui::Slider::new(&mut joints.0[i][0], -360.0..=360.0).suffix("°"));
-                    ui.end_row();
+                        ui.checkbox(&mut show_text.0[i], "show label");
+                        ui.end_row();
+                    });
 
-                    ui.label("Axis2");
-                    ui.add(egui::Slider::new(&mut joints.0[i][1], -360.0..=360.0).suffix("°"));
-                    ui.end_row();
+                    egui::Grid::new("robot_axis").num_columns(2).show(ui, |ui| {
+                        ui.label("Axis1");
+                        ui.add(egui::Slider::new(&mut joints.0[i][0], -360.0..=360.0).suffix("°"));
+                        ui.end_row();
 
-                    ui.label("Axis3");
-                    ui.add(egui::Slider::new(&mut joints.0[i][2], -360.0..=360.0).suffix("°"));
-                    ui.end_row();
+                        ui.label("Axis2");
+                        ui.add(egui::Slider::new(&mut joints.0[i][1], -360.0..=360.0).suffix("°"));
+                        ui.end_row();
 
-                    ui.label("Axis4");
-                    ui.add(egui::Slider::new(&mut joints.0[i][3], -360.0..=360.0).suffix("°"));
-                    ui.end_row();
+                        ui.label("Axis3");
+                        ui.add(egui::Slider::new(&mut joints.0[i][2], -360.0..=360.0).suffix("°"));
+                        ui.end_row();
 
-                    ui.label("Axis5");
-                    ui.add(egui::Slider::new(&mut joints.0[i][4], -360.0..=360.0).suffix("°"));
-                    ui.end_row();
+                        ui.label("Axis4");
+                        ui.add(egui::Slider::new(&mut joints.0[i][3], -360.0..=360.0).suffix("°"));
+                        ui.end_row();
 
-                    ui.label("Axis6");
-                    ui.add(egui::Slider::new(&mut joints.0[i][5], -360.0..=360.0).suffix("°"));
-                    ui.end_row();
+                        ui.label("Axis5");
+                        ui.add(egui::Slider::new(&mut joints.0[i][4], -360.0..=360.0).suffix("°"));
+                        ui.end_row();
 
-                    ui.label("Finger1");
-                    ui.add(egui::Slider::new(&mut finger_pos.0[i][0], 0.0..=100.0).suffix("%"));
-                    ui.end_row();
+                        ui.label("Axis6");
+                        ui.add(egui::Slider::new(&mut joints.0[i][5], -360.0..=360.0).suffix("°"));
+                        ui.end_row();
 
-                    ui.label("Finger2");
-                    ui.add(egui::Slider::new(&mut finger_pos.0[i][1], 0.0..=100.0).suffix("%"));
-                    ui.end_row();
+                        ui.label("Finger1");
+                        ui.add(egui::Slider::new(&mut finger_pos.0[i][0], 0.0..=100.0).suffix("%"));
+                        ui.end_row();
+
+                        ui.label("Finger2");
+                        ui.add(egui::Slider::new(&mut finger_pos.0[i][1], 0.0..=100.0).suffix("%"));
+                        ui.end_row();
+                    });
                 });
-            });
         }
     }
 }
@@ -237,55 +261,58 @@ struct Label(u64);
 
 fn setup_label(mut commands: Commands) {
     commands.spawn((
-        TextBundle {
+        BillboardTextBundle {
+            transform: Transform::from_scale(TEXT_SCALE),
             text: Text::from_section(
                 "Robot0",
                 TextStyle {
-                    font_size: 24.0,
+                    font_size: 64.0,
+                    color: Color::WHITE,
                     ..default()
                 },
-            ),
-            style: Style {
-                position_type: PositionType::Absolute,
-                ..default()
-            },
+            )
+            .with_alignment(TextAlignment::Center),
+            billboard_depth: BillboardDepth(false),
             ..default()
         },
         Label(ROBOT_KEY_0),
     ));
 
     commands.spawn((
-        TextBundle {
+        BillboardTextBundle {
+            transform: Transform::from_scale(TEXT_SCALE),
             text: Text::from_section(
                 "Robot1",
                 TextStyle {
-                    font_size: 24.0,
+                    font_size: 64.0,
+                    color: Color::WHITE,
                     ..default()
                 },
-            ),
-            style: Style {
-                position_type: PositionType::Absolute,
-                ..default()
-            },
+            )
+            .with_alignment(TextAlignment::Center),
+            billboard_depth: BillboardDepth(false),
             ..default()
         },
         Label(ROBOT_KEY_1),
     ));
 }
 
-fn update_label_pos(
+fn update_label_pos_visibility(
     q_robot: Query<(&RobotUr5, &GlobalTransform)>,
-    q_camera: Query<(&Camera, &GlobalTransform)>,
-    mut q_label: Query<(&Label, &mut Style)>,
+    mut q_label: Query<(&Label, &mut Transform, &mut Visibility)>,
+    show_text: Res<ShowText>,
 ) {
-    if let Ok((camera, camera_gt)) = q_camera.get_single() {
-        for (robot, gt) in q_robot.iter() {
-            for (label, mut style) in q_label.iter_mut() {
-                if robot.id == label.0 {
-                    if let Some(pos) = camera.world_to_viewport(camera_gt, gt.translation()) {
-                        style.left = Val::Px(pos.x - 40.0);
-                        style.top = Val::Px(pos.y + 10.0);
-                    }
+    for (robot, gt) in q_robot.iter() {
+        for (label, mut label_tf, mut visibility) in q_label.iter_mut() {
+            if robot.id == label.0 {
+                let mut tf = Transform::from_translation(gt.translation());
+                tf.translation.y -= 0.1;
+                tf.scale = TEXT_SCALE;
+                *label_tf = tf;
+                if show_text.0[label.0 as usize] {
+                    *visibility = Visibility::Inherited;
+                } else {
+                    *visibility = Visibility::Hidden;
                 }
             }
         }
