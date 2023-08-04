@@ -51,25 +51,37 @@ impl Default for JointsPos {
     }
 }
 
-fn update_joints_pos(mut query: Query<&mut RobotUr5>, joints: Res<JointsPos>) {
-    if joints.is_changed() {
-        for mut robot in query.iter_mut() {
-            let id = robot.id as usize;
-            robot.set_deg(joints.0[id])
-        }
+fn update_joints_pos(
+    joints: Res<JointsPos>,
+    mut query: Query<&mut RobotUr5>,
+    mut now_joints: Local<JointsPos>,
+) {
+    for mut robot in query.iter_mut() {
+        let id = robot.id as usize;
+        let target = joints.0[id];
+        let now = now_joints.0[id];
+        let pos = ct_robot_joints(&now, &target);
+        now_joints.0[id] = pos;
+        robot.set_deg(pos)
     }
 }
 
 #[derive(Resource, Clone, Default)]
 struct FingerPos([[f32; 2]; 2]); // range [0.0, 100.0]
 
-fn update_finger_pos(mut query: Query<&mut GripperCtm2f110>, fingers: Res<FingerPos>) {
-    if fingers.is_changed() {
-        for mut gripper in query.iter_mut() {
-            let id = gripper.id as usize;
-            gripper.pos1 = fingers.0[id][0] / 100.0;
-            gripper.pos2 = fingers.0[id][1] / 100.0;
-        }
+fn update_finger_pos(
+    fingers: Res<FingerPos>,
+    mut query: Query<&mut GripperCtm2f110>,
+    mut now_fingers: Local<FingerPos>,
+) {
+    for mut gripper in query.iter_mut() {
+        let id = gripper.id as usize;
+        let target = fingers.0[id];
+        let now = now_fingers.0[id];
+        let pos = ct_gripper_finger(&now, &target);
+        now_fingers.0[id] = pos;
+        gripper.pos1 = pos[0] / 100.0;
+        gripper.pos2 = pos[1] / 100.0;
     }
 }
 
@@ -290,4 +302,47 @@ fn update_label_pos(
             }
         }
     }
+}
+
+// now 当前值
+// target 目标值
+// k 变化系数
+// d_max 最大变化值
+// 返回下一帧的值
+fn compute_track(now: f64, target: f64, k: f64, d_max: f64) -> f64 {
+    let mut delta = (2.0 * k * (target - now)).abs().sqrt();
+    if delta > d_max.abs() {
+        delta = d_max.abs();
+    }
+    if target >= now {
+        let out = now + delta;
+        if out > target {
+            target
+        } else {
+            out
+        }
+    } else {
+        let out = now - delta;
+        if out < target {
+            target
+        } else {
+            out
+        }
+    }
+}
+
+fn ct_robot_joints(now: &[f64; 6], target: &[f64; 6]) -> [f64; 6] {
+    let mut out = [0f64; 6];
+    for i in 0..6 {
+        out[i] = compute_track(now[i], target[i], 0.5, 16.0);
+    }
+    out
+}
+
+fn ct_gripper_finger(now: &[f32; 2], target: &[f32; 2]) -> [f32; 2] {
+    let mut out = [0f32; 2];
+    for i in 0..2 {
+        out[i] = compute_track(now[i] as f64, target[i] as f64, 2.0, 5.0) as f32;
+    }
+    out
 }
