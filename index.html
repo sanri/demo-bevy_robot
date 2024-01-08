@@ -1,6 +1,22 @@
 <html>
-    <head>
-        <link data-trunk rel="rust" data-wasm-opt=s />
-        <link data-trunk rel="copy-dir" href="assets" />
-    </head>
+<head>
+    <meta charset="UTF-8"/>
+    <title>demo-bevy_robot</title>
+    <link data-trunk rel="rust" data-wasm-opt=s data-integrity="none"/>
+    <link data-trunk rel="copy-dir" href="assets"/>
+    <script type="text/javascript">
+        document.oncontextmenu = function () {
+            return false;
+        }
+    </script>
+    <style>
+        h1{
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>demo-bevy_robot</h1>
+    <canvas id="demo-bevy_robot"></canvas>
+</body>
 </html>

@@ -19,8 +19,15 @@ fn main() {
     App::new()
         .init_resource::<JointsPos>()
         .init_resource::<FingerPos>()
+        .add_plugins((DefaultPlugins.set(WindowPlugin {
+            primary_window: Some(Window {
+                fit_canvas_to_parent: true,
+                canvas: Some("#demo-bevy_robot".to_string()),
+                ..default()
+            }),
+            ..default()
+        }),))
         .add_plugins((
-            DefaultPlugins,
             PanOrbitCameraPlugin,
             EguiPlugin,
             RobotPluginUr5,
