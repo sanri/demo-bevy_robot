@@ -4,19 +4,16 @@
     <title>demo-bevy_robot</title>
     <link data-trunk rel="rust" data-wasm-opt=s data-integrity="none"/>
     <link data-trunk rel="copy-dir" href="assets"/>
+</head>
+<body>
+<h1 style="text-align: center">demo-bevy_robot</h1>
+<div style="width: 80%;height: 80%; margin: auto">
+    <canvas id="demo-bevy_robot"></canvas>
     <script type="text/javascript">
-        document.oncontextmenu = function () {
+        document.getElementById("demo-bevy_robot").oncontextmenu = function () {
             return false;
         }
     </script>
-    <style>
-        h1{
-            text-align: center;
-        }
-    </style>
-</head>
-<body>
-    <h1>demo-bevy_robot</h1>
-    <canvas id="demo-bevy_robot"></canvas>
+</div>
 </body>
 </html>
