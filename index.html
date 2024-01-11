@@ -4,10 +4,43 @@
     <title>demo-bevy_robot</title>
     <link data-trunk rel="rust" data-wasm-opt=s data-integrity="none"/>
     <link data-trunk rel="copy-dir" href="assets"/>
+    <script defer="defer" type="text/javascript">
+        function input_robot_joint_click(robot, joint) {
+            const element_id = `input_robot${robot}_joint${joint}`;
+            const angle = document.getElementById(element_id).value;
+            window.wasmBindings.set_robot_joint_pos(robot, joint, angle);
+        }
+
+        function input_robot_finger_click(robot, finger) {
+            const element_id = `input_robot${robot}_finger${finger}`;
+            const pos = document.getElementById(element_id).value;
+            window.wasmBindings.set_robot_finger_pos(robot, finger, pos);
+        }
+    </script>
+
+    <style>
+        .par_row {
+            display: flex;
+            justify-content: space-around;
+            margin: 10px;
+        }
+
+        .input_label {
+            width: 80px;
+        }
+
+        .input_box {
+            width: 60px;
+            margin-right: 20px;
+        }
+    </style>
 </head>
+
 <body>
+
 <h1 style="text-align: center">demo-bevy_robot</h1>
-<div style="width: 80%;height: 80%; margin: auto">
+
+<div style="width: 80%;height: 60%; margin: auto">
     <canvas id="demo-bevy_robot"></canvas>
     <script type="text/javascript">
         document.getElementById("demo-bevy_robot").oncontextmenu = function () {
@@ -15,5 +48,115 @@
         }
     </script>
 </div>
+
+<div style="display: flex; justify-content: space-around">
+
+    <div id="robot0">
+        <label>Robot0</label>
+
+        <div class="par_row">
+            <label class="input_label">Joint 1:</label>
+            <input class="input_box" type="number" id="input_robot0_joint1" min="-720" max="720" value="0"/>
+            <button onclick="input_robot_joint_click(0,1)">set</button>
+        </div>
+
+        <div class="par_row">
+            <label class="input_label">Joint 2:</label>
+            <input class="input_box" type="number" id="input_robot0_joint2" min="-720" max="720" value="0"/>
+            <button onclick="input_robot_joint_click(0,2)">set</button>
+        </div>
+
+        <div class="par_row">
+            <label class="input_label">Joint 3:</label>
+            <input class="input_box" type="number" id="input_robot0_joint3" min="-720" max="720" value="0"/>
+            <button onclick="input_robot_joint_click(0,3)">set</button>
+        </div>
+
+        <div class="par_row">
+            <label class="input_label">Joint 4:</label>
+            <input class="input_box" type="number" id="input_robot0_joint4" min="-720" max="720" value="0"/>
+            <button onclick="input_robot_joint_click(0,4)">set</button>
+        </div>
+
+        <div class="par_row">
+            <label class="input_label">Joint 5:</label>
+            <input class="input_box" type="number" id="input_robot0_joint5" min="-720" max="720" value="0"/>
+            <button onclick="input_robot_joint_click(0,5)">set</button>
+        </div>
+
+        <div class="par_row">
+            <label class="input_label">Joint 6:</label>
+            <input class="input_box" type="number" id="input_robot0_joint6" min="-720" max="720" value="0"/>
+            <button onclick="input_robot_joint_click(0,6)">set</button>
+        </div>
+
+        <div class="par_row">
+            <label class="input_label">Finger 1:</label>
+            <input class="input_box" type="number" id="input_robot0_finger1" min="0" max="100" value="0"/>
+            <button onclick="input_robot_finger_click(0,1)">set</button>
+        </div>
+
+        <div class="par_row">
+            <label class="input_label">Finger 2:</label>
+            <input class="input_box" type="number" id="input_robot0_finger2" min="0" max="100" value="0"/>
+            <button onclick="input_robot_finger_click(0,2)">set</button>
+        </div>
+
+    </div>
+
+    <div id="robot1">
+        <label>Robot1</label>
+
+        <div class="par_row">
+            <label class="input_label">Joint 1:</label>
+            <input class="input_box" type="number" id="input_robot1_joint1" min="-720" max="720" value="0"/>
+            <button onclick="input_robot_joint_click(1,1)">set</button>
+        </div>
+
+        <div class="par_row">
+            <label class="input_label">Joint 2:</label>
+            <input class="input_box" type="number" id="input_robot1_joint2" min="-720" max="720" value="0"/>
+            <button onclick="input_robot_joint_click(1,2)">set</button>
+        </div>
+
+        <div class="par_row">
+            <label class="input_label">Joint 3:</label>
+            <input class="input_box" type="number" id="input_robot1_joint3" min="-720" max="720" value="0"/>
+            <button onclick="input_robot_joint_click(1,3)">set</button>
+        </div>
+
+        <div class="par_row">
+            <label class="input_label">Joint 4:</label>
+            <input class="input_box" type="number" id="input_robot1_joint4" min="-720" max="720" value="0"/>
+            <button onclick="input_robot_joint_click(1,4)">set</button>
+        </div>
+
+        <div class="par_row">
+            <label class="input_label">Joint 5:</label>
+            <input class="input_box" type="number" id="input_robot1_joint5" min="-720" max="720" value="0"/>
+            <button onclick="input_robot_joint_click(1,5)">set</button>
+        </div>
+
+        <div class="par_row">
+            <label class="input_label">Joint 6:</label>
+            <input class="input_box" type="number" id="input_robot1_joint6" min="-720" max="720" value="0"/>
+            <button onclick="input_robot_joint_click(1,6)">set</button>
+        </div>
+
+        <div class="par_row">
+            <label class="input_label">Finger 1:</label>
+            <input class="input_box" type="number" id="input_robot1_finger1" min="0" max="100" value="0"/>
+            <button onclick="input_robot_finger_click(1,1)">set</button>
+        </div>
+
+        <div class="par_row">
+            <label class="input_label">Finger 2:</label>
+            <input class="input_box" type="number" id="input_robot1_finger2" min="0" max="100" value="0"/>
+            <button onclick="input_robot_finger_click(1,2)">set</button>
+        </div>
+
+    </div>
+</div>
+
 </body>
 </html>

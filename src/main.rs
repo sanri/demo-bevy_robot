@@ -5,6 +5,8 @@ mod robot_ur5;
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts, EguiPlugin};
 use bevy_panorbit_camera::{PanOrbitCamera, PanOrbitCameraPlugin};
+use flume::{unbounded, Receiver, Sender};
+use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::{
     draw_trail::{DrawTrailPlugin, Trails},
@@ -12,13 +14,46 @@ use crate::{
     robot_ur5::{RobotPluginUr5, RobotUr5, JOINTS_POS},
 };
 
+static mut SENDER: Option<Sender<Cmd>> = None;
+
+#[wasm_bindgen]
+pub fn set_robot_joint_pos(robot: u16, joint: u16, angle: f32) {
+    unsafe {
+        if let Some(sender) = &SENDER {
+            let cmd = Cmd::RobotJointPos {
+                robot,
+                joint,
+                angle,
+            };
+            let _ = sender.send(cmd);
+        }
+    }
+}
+
+#[wasm_bindgen]
+pub fn set_robot_finger_pos(robot: u16, finger: u16, pos: f32) {
+    unsafe {
+        if let Some(sender) = &SENDER {
+            let cmd = Cmd::RobotFingerPos { robot, finger, pos };
+            let _ = sender.send(cmd);
+        }
+    }
+}
+
 const ROBOT_KEY_0: u64 = 0;
 const ROBOT_KEY_1: u64 = 1;
 
 fn main() {
+    let (sender, receiver) = unbounded::<Cmd>();
+    unsafe {
+        SENDER = Some(sender);
+    }
+    let cmd_channel = CmdChannel { receiver };
+
     App::new()
         .init_resource::<JointsPos>()
         .init_resource::<FingerPos>()
+        .insert_resource(cmd_channel)
         .add_plugins((DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
                 fit_canvas_to_parent: true,
@@ -44,9 +79,21 @@ fn main() {
                 draw_floor_grids,
                 draw_gripper_trails,
                 update_label_pos,
+                recv_cmd,
             ),
         )
         .run();
+}
+
+#[derive(Clone)]
+enum Cmd {
+    RobotJointPos { robot: u16, joint: u16, angle: f32 },
+    RobotFingerPos { robot: u16, finger: u16, pos: f32 },
+}
+
+#[derive(Resource)]
+struct CmdChannel {
+    receiver: Receiver<Cmd>,
 }
 
 #[derive(Resource, Clone)]
@@ -55,6 +102,55 @@ struct JointsPos([[f64; 6]; 2]); // deg
 impl Default for JointsPos {
     fn default() -> Self {
         JointsPos([JOINTS_POS; 2])
+    }
+}
+
+fn recv_cmd(
+    cmd_channel: Res<CmdChannel>,
+    mut joints_pos: ResMut<JointsPos>,
+    mut finger_pos: ResMut<FingerPos>,
+) {
+    while let Ok(cmd) = cmd_channel.receiver.try_recv() {
+        match cmd {
+            Cmd::RobotJointPos {
+                robot,
+                joint,
+                angle,
+            } => {
+                let robot: usize = if (robot as u64) == ROBOT_KEY_0 { 0 } else { 1 };
+                let joint: usize = match joint {
+                    1 => 0,
+                    2 => 1,
+                    3 => 2,
+                    4 => 3,
+                    5 => 4,
+                    _ => 5,
+                };
+                let angle = if angle > 720.0 {
+                    720.0
+                } else if angle < -720.0 {
+                    -720.0
+                } else {
+                    angle
+                };
+                joints_pos.0[robot][joint] = angle as f64;
+            }
+            Cmd::RobotFingerPos { robot, finger, pos } => {
+                let robot: usize = if (robot as u64) == ROBOT_KEY_0 { 0 } else { 1 };
+                let finger: usize = match finger {
+                    1 => 0,
+                    _ => 1,
+                };
+                let pos = if pos > 100.0 {
+                    100.0
+                } else if pos < 0.0 {
+                    0.0
+                } else {
+                    pos
+                };
+                finger_pos.0[robot][finger] = pos;
+            }
+        }
     }
 }
 
