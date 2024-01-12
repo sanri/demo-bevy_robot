@@ -7,6 +7,8 @@ use bevy_egui::{egui, EguiContexts, EguiPlugin};
 use bevy_panorbit_camera::{PanOrbitCamera, PanOrbitCameraPlugin};
 use flume::{unbounded, Receiver, Sender};
 use wasm_bindgen::prelude::wasm_bindgen;
+#[cfg(target_family = "wasm")]
+use serde::{Deserialize, Serialize};
 
 use crate::{
     draw_trail::{DrawTrailPlugin, Trails},
@@ -15,6 +17,22 @@ use crate::{
 };
 
 static mut SENDER: Option<Sender<Cmd>> = None;
+
+#[cfg(target_family = "wasm")]
+#[derive(Serialize, Deserialize)]
+pub struct EventJointChanged {
+    robot: u16,
+    joint: u16,
+    angle: f32,
+}
+
+#[cfg(target_family = "wasm")]
+#[derive(Serialize, Deserialize)]
+pub struct EventFingerChanged {
+    robot: u16,
+    finger: u16,
+    pos: f32,
+}
 
 #[wasm_bindgen]
 pub fn set_robot_joint_pos(robot: u16, joint: u16, angle: f32) {
@@ -158,7 +176,35 @@ fn update_joints_pos(
     joints: Res<JointsPos>,
     mut query: Query<&mut RobotUr5>,
     mut now_joints: Local<JointsPos>,
+    mut last_joints: Local<JointsPos>,
 ) {
+    #[cfg(target_family = "wasm")]
+    {
+        use std::ops::Deref;
+        use web_sys::CustomEvent;
+        for robot in 0..=1 {
+            for joint in 0..6 {
+                if last_joints.0[robot][joint] != joints.0[robot][joint] {
+                    let custom_event = CustomEvent::new("").unwrap();
+                    let data = EventJointChanged {
+                        robot: robot as u16,
+                        joint: (joint + 1) as u16,
+                        angle: joints.0[robot][joint] as f32,
+                    };
+                    let js_value = serde_wasm_bindgen::to_value(&data).unwrap();
+                    custom_event.init_custom_event_with_can_bubble_and_cancelable_and_detail(
+                        "joint_changed",
+                        true,
+                        true,
+                        &js_value,
+                    );
+                    let window = web_sys::window().unwrap();
+                    let _ = window.dispatch_event(custom_event.deref());
+                }
+            }
+        }
+    }
+
     for mut robot in query.iter_mut() {
         let id = robot.id as usize;
         let target = joints.0[id];
@@ -167,6 +213,8 @@ fn update_joints_pos(
         now_joints.0[id] = pos;
         robot.set_deg(pos)
     }
+
+    last_joints.0 = joints.0;
 }
 
 #[derive(Resource, Clone, Default)]
@@ -176,7 +224,34 @@ fn update_finger_pos(
     fingers: Res<FingerPos>,
     mut query: Query<&mut GripperCtm2f110>,
     mut now_fingers: Local<FingerPos>,
+    mut last_fingers: Local<FingerPos>,
 ) {
+    #[cfg(target_family = "wasm")]
+    {
+        use std::ops::Deref;
+        use web_sys::CustomEvent;
+        for robot in 0..=1 {
+            for finger in 0..=1 {
+                if last_fingers.0[robot][finger] != fingers.0[robot][finger] {
+                    let custom_event = CustomEvent::new("").unwrap();
+                    let data = EventFingerChanged {
+                        robot: robot as u16,
+                        finger: (finger + 1) as u16,
+                        pos: fingers.0[robot][finger] as f32,
+                    };
+                    let js_value = serde_wasm_bindgen::to_value(&data).unwrap();
+                    custom_event.init_custom_event_with_can_bubble_and_cancelable_and_detail(
+                        "finger_changed",
+                        true,
+                        true,
+                        &js_value,
+                    );
+                    let window = web_sys::window().unwrap();
+                    let _ = window.dispatch_event(custom_event.deref());
+                }
+            }
+        }
+    }
     for mut gripper in query.iter_mut() {
         let id = gripper.id as usize;
         let target = fingers.0[id];
@@ -186,6 +261,8 @@ fn update_finger_pos(
         gripper.pos1 = pos[0] / 100.0;
         gripper.pos2 = pos[1] / 100.0;
     }
+
+    last_fingers.0 = fingers.0;
 }
 
 fn draw_floor_grids(mut gizmos: Gizmos) {

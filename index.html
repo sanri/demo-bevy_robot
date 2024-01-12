@@ -16,6 +16,22 @@
             const pos = document.getElementById(element_id).value;
             window.wasmBindings.set_robot_finger_pos(robot, finger, pos);
         }
+
+        window.addEventListener("joint_changed", function (event) {
+            const robot = event.detail["robot"];
+            const joint = event.detail["joint"];
+            const angle = event.detail["angle"];
+            const element_id = `input_robot${robot}_joint${joint}`;
+            document.getElementById(element_id).value = angle;
+        })
+
+        window.addEventListener("finger_changed", function (event) {
+            const robot = event.detail["robot"];
+            const finger = event.detail["finger"];
+            const pos = event.detail["pos"];
+            const element_id = `input_robot${robot}_finger${finger}`;
+            document.getElementById(element_id).value = pos;
+        })
     </script>
 
     <style>
@@ -156,6 +172,17 @@
         </div>
 
     </div>
+
+    <script>
+        const joints_default_pos = [90.0, -120.0, 90.0, -60.0, -90.0, 0.0];
+        for (let robot = 0; robot < 2; robot++) {
+            for (let joint = 0; joint < 6; joint++) {
+                const element_id = `input_robot${robot}_joint${joint + 1}`;
+                document.getElementById(element_id).value = joints_default_pos[joint];
+            }
+        }
+    </script>
+
 </div>
 
 </body>

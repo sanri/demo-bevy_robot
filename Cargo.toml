@@ -10,6 +10,9 @@ bevy_egui = "0.21"
 bevy_panorbit_camera = { version = "0.6", features = [ "bevy_egui" ] }
 flume = "0.11"
 wasm-bindgen = "0.2"
+#web-sys = { version = "0.3", features = ["Window", "Document", "HtmlElement", "Element", "CustomEvent"] }
+#serde = { version = "1.0", features = ["derive"] }
+#serde-wasm-bindgen = "0.6"
 
 [dependencies.bevy]
 version = "0.11"
@@ -19,3 +22,8 @@ features = [
     "bevy_sprite", "bevy_text", "bevy_winit", "multi-threaded", "ktx2", "tonemapping_luts", "zstd", "default_font",
     "webgl2"
 ]
+
+[target.wasm32-unknown-unknown.dependencies]
+web-sys = { version = "0.3", features = ["Window", "Document", "HtmlElement", "Element", "CustomEvent"] }
+serde = { version = "1.0", features = ["derive"] }
+serde-wasm-bindgen = "0.6"
