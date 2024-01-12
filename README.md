@@ -3,6 +3,8 @@ Display UR5 robots using the bevy engine
 
 <img src="media/demo.png">
 
+<img src="media/demo-web.png">
+
 ## native application
 
 ### build
